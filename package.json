@@ -1,0 +1,31 @@
+{
+  "name": "bang-mobile-guide",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build && node tools/build-offline.mjs",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test": "node --experimental-strip-types --test tests/domain.test.ts",
+    "test:ui": "playwright test",
+    "format": "prettier --write src tests tools playwright.config.ts README.md docs"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.0",
+    "@types/node": "24.19.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "oxlint": "1.87.0",
+    "prettier": "3.9.9",
+    "typescript": "6.0.3",
+    "vite": "8.3.3"
+  }
+}
