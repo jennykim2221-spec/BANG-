@@ -1,7 +1,8 @@
+import type {DistanceInput} from "../domain/distance";
 export const learningSession = {
   setup:{step:0,count:4}, reviewSetup:{step:0,count:4},
-  lessons:{} as Record<string,{seat:string}>,
-  reviewLessons:{} as Record<string,{seat:string}>,
+  lessons:{} as Record<string,{seat:string;distance?:DistanceInput}>,
+  reviewLessons:{} as Record<string,{seat:string;distance?:DistanceInput}>,
   review:false, protectBookmark:false, hasResume:false,
 };
 export function restartLesson(id:string) {

@@ -1,3 +1,4 @@
+import {FivePlayerTable,fivePlayerInitial} from "../components/FivePlayerTable";
 import { ImportantTip } from "../components/ImportantTip";
 import { CardArtwork } from "../components/CardArtwork";
 import { LabelledText } from "../components/LabelledText";
@@ -15,8 +16,8 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
   const { go, learningHome } = useRouter();
 
   const viewLessons=learningSession.review?learningSession.reviewLessons:learningSession.lessons;
-  const [seat, setSeat] = useState(viewLessons[lesson.id]?.seat ?? "");
-  useEffect(() => { if(learningSession.review) learningSession.reviewLessons[lesson.id]={seat}; if(!learningSession.protectBookmark) learningSession.lessons[lesson.id]={seat}; }, [lesson.id, seat]);
+  const [distance, setDistance] = useState(viewLessons[lesson.id]?.distance ?? {...fivePlayerInitial,target:viewLessons[lesson.id]?.seat ?? ""});
+  useEffect(() => { if(learningSession.review) learningSession.reviewLessons[lesson.id]={seat:distance.target,distance}; if(!learningSession.protectBookmark) learningSession.lessons[lesson.id]={seat:distance.target,distance}; }, [lesson.id, distance]);
   useEffect(() => {
     write("learning-started", true);
     if (learningSession.protectBookmark) return;
@@ -53,32 +54,7 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
           </li>
         ))}
       </ol>
-      {lesson.id === "distance" && (
-        <section className="panel">
-          <h2>가상 5인 테이블</h2>
-          <div className="five-seat-table" role="img" aria-label="시계방향으로 A, B, C, D, E가 원형으로 앉은 5인 테이블. 내 좌석은 A입니다."><div className="round-table-center">테이블</div>{["A", "B", "C", "D", "E"].map((name, i) => <span key={name} className={`table-seat seat-${i} ${name === "A" ? "my-seat" : ""} ${seat === name ? "target-seat" : ""}`}>{name}{name === "A" && <small>나</small>}</span>)}</div>
-          <div className="choices">
-            {["B", "C", "D", "E"].map((s) => (
-              <button
-                aria-pressed={seat === s}
-                key={s}
-                onClick={() => setSeat(s)}
-              >
-                대상 {s}
-              </button>
-            ))}
-          </div>
-          {seat && (
-            <p role="status">
-              A에서 {seat}까지 기본 거리 {["B", "E"].includes(seat) ? 1 : 2}
-              입니다.
-            </p>
-          )}
-          <Link className="text-button" to="/tools/distance">
-            장비를 더해서 계산하기 ›
-          </Link>
-        </section>
-      )}
+      {lesson.id === "distance" && <FivePlayerTable value={distance} onChange={setDistance}/>}
       <SourceLinks refs={lesson.sourceRefs} />
       <div className="two-col">
         {lesson.order > 1 ? (

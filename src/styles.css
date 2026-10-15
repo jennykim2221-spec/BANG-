@@ -1409,3 +1409,10 @@ main > :first-child { margin-top:0; }
 /* All return controls share the home return link style. */
 .back-link { display:inline-flex; align-items:center; justify-content:flex-start; min-height:44px; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; color:var(--accent); font-size:13px; font-weight:400; line-height:1.6; text-align:left; text-decoration:none; cursor:pointer; }
 .back-link:hover { background:transparent; text-decoration:underline; }
+
+.distance-options { border-top:1px solid var(--border); padding:10px 0; }
+.distance-options summary { cursor:pointer; min-height:44px; display:flex; align-items:center; color:var(--accent); }
+.distance-options label { display:flex; align-items:center; gap:8px; margin:10px 0; flex-wrap:wrap; }
+.distance-options select { width:100%; }
+.table-seat.eliminated-seat { opacity:.45; text-decoration:line-through; }
+.distance-limit { display:block; margin-top:12px; }
