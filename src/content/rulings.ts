@@ -1,6 +1,15 @@
 import type { Ruling } from "./types.ts";
 type Seed = [string, string, string, string, string[], string[], string[]];
 const seeds: Seed[] = [
+  ["sheriff-deputy-penalty","보안관이 부관을 탈락시키면?","보안관은 자신의 손패와 앞에 설치한 게임 카드를 모두 버립니다.","p4",["보완관 부관","보안관 부관","부관 죽임","벌칙","패널티"],["보안관이 부관을 탈락시킨 경우"],[]],
+  ["outlaw-reward","무법자를 탈락시키면 현상금은?","탈락시킨 사람이 중앙 카드에서 3장을 가져옵니다. 보안관·부관·배신자뿐 아니라 다른 무법자도 보상을 받습니다.","p4",["현상금","무법자 보상","보상 3장"],["플레이어가 무법자를 탈락시킨 경우"],["outlaw-duel"]],
+  ["eliminated-cards","탈락한 사람의 카드는 어떻게 하나요?","역할을 공개하고, 손패와 앞에 설치한 게임 카드를 모두 버립니다.","p4",["탈락 카드","죽은 사람 카드","설치 카드 버리기"],["생명력이 0이 되어 탈락이 확정된 경우"],["vulture-sam"]],
+  ["vulture-loot","벌처 샘이 있으면 탈락자의 카드는?","벌처 샘이 살아 있다면 탈락자의 손패와 설치된 게임 카드를 모두 자신의 손패로 가져옵니다. 바로 설치되는 것은 아닙니다.","p11",["벌처 샘","벌처샘","탈락 카드 가져오기"],["다른 플레이어가 탈락했고 벌처 샘이 살아 있는 경우"],["vulture-sam","eliminated-cards"]],
+  ["turn-hand-limit","턴이 끝날 때 몇 장을 버리나요?","현재 생명력보다 손패가 많으면, 초과한 만큼 골라 버립니다. 설치된 카드는 손패 개수에 포함하지 않습니다.","p3",["손패 제한","손패 정리","생명력 카드 수","초과 손패"],["자기 턴의 카드 사용을 마친 경우"],["discard-free"]],
+  ["empty-draw-pile","중앙 카드가 다 떨어지면?","버림 더미를 섞어 뒷면으로 쌓고 새 중앙 카드로 사용합니다. 앞에 설치된 카드와 다른 사람의 손패는 섞지 않습니다.","p3",["중앙 카드 없음","중앙 카드 다 씀","카드 부족","버림 더미 섞기"],["중앙 카드가 비었을 때"],[]],
+  ["replace-weapon","새 무기를 설치하면 기존 무기는?","이미 설치한 무기 카드를 버리고 새 무기를 설치합니다. 무기는 한 번에 하나만 설치할 수 있습니다.","p5",["무기 교체","무기 버리기","무기 두 개"],["기존 무기가 있는 상태에서 새 무기를 사용하는 경우"],["volcanic","schofield","remington"]],
+  ["panic-cat-cards","강탈과 캣 벌루는 카드를 어디로 옮기나요?","강탈은 상대 카드 1장을 내 손패로 가져오고, 캣 벌루는 상대 카드 1장을 버림 더미에 놓습니다. 손패는 무작위로, 설치된 카드는 골라 처리합니다.","p7",["강탈 가져오기","캣 벌루 버리기","상대 손패","설치 카드 가져오기"],["강탈 또는 캣 벌루를 사용한 경우"],["panic","cat-balou","panic-range"]],
+  ["draw-cards-effects","역마차·은행·잡화점은 어떻게 가져오나요?","역마차는 중앙 카드에서 2장, 은행은 3장을 가져옵니다. 잡화점은 생존자 수만큼 공개한 뒤 낸 사람부터 시계방향으로 1장씩 고릅니다.","p7",["역마차 2장","은행 3장","잡화점 순서","카드 뽑기"],["카드를 가져오는 효과를 사용한 경우"],["stagecoach","wells-fargo","general-store"]],
   [
     "gatling-bang",
     "개틀링 뒤에 뱅! 가능한가요?",
@@ -173,6 +182,8 @@ const seeds: Seed[] = [
     ["outlaw-duel"],
   ],
 ];
+const movementIds = ["sheriff-deputy-penalty","outlaw-reward","eliminated-cards","vulture-loot","turn-hand-limit","empty-draw-pile","replace-weapon","panic-cat-cards","draw-cards-effects"];
+const movementCautions: Record<string,string[]> = {"sheriff-deputy-penalty":["역할 카드와 캐릭터 카드는 버리지 않습니다. 보드에 그려진 기본 권총도 그대로입니다."],"outlaw-reward":["다이너마이트로 탈락한 경우에는 탈락시킨 플레이어가 없으므로 현상금도 없습니다.","무법자가 자신이 낸 결투에서 탈락한 경우, 결투 상대는 보상 3장을 받지 않습니다."],"eliminated-cards":["살아 있는 벌처 샘이 있다면, 버리는 대신 그 캐릭터의 능력에 따라 처리합니다."],"panic-cat-cards":["강탈은 거리 보정을 반영한 거리 1의 상대에게만 사용합니다. 캣 벌루에는 거리 제한이 없습니다."]};
 export const rulings: Ruling[] = seeds.map(
   (
     [id, title, summary, locator, aliases, conditions, relatedIds],
@@ -187,15 +198,15 @@ export const rulings: Ruling[] = seeds.map(
     relatedIds,
     steps: [summary],
     exceptions:
-      id === "discard-free"
+      movementCautions[id] ?? (id === "discard-free"
         ? [
             "턴 종료 초과 손패 정리, 카드 효과, Sid Ketchum 능력에 따른 버리기는 가능합니다.",
           ]
-        : [],
-    tags: [...aliases],
+        : []),
+    tags: [...aliases, ...(movementIds.includes(id) ? ["카드 가져오기·버리기"] : [])],
     sourceRefs: [{ sourceId: locator.startsWith("Q") ? "F" : "R", locator }],
     priority,
     verification: "verified",
-    verifiedAt: "2026-10-08",
+    verifiedAt: movementIds.includes(id) ? "2026-10-15" : "2026-10-08",
   }),
 );

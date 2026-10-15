@@ -26,7 +26,7 @@ class ErrorBoundary extends Component<
       <main>
         <h1>화면을 불러오지 못했어요</h1>
         <p>새로고침하면 첫 화면부터 다시 시작합니다.</p>
-        <a href="/">홈으로 돌아가기</a>
+        <a className="back-link" href="/">‹ 홈으로 돌아가기</a>
       </main>
     ) : (
       this.props.children

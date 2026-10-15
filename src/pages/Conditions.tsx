@@ -1,6 +1,7 @@
 import { LabelledText } from "../components/LabelledText";
 import { useEffect, useRef, useState } from "react";
 import {
+  judgeMovement,
   judgeBeer,
   judgeDefense,
   judgeStartTurn,
@@ -19,6 +20,15 @@ const numbers = (from: number, to: number): [string, string][] =>
     `${from + i}`,
   ]);
 const fields: Record<string, Field> = {
+  movementCase:{label:"어떤 상황인가요?",options:[["elimination","탈락 보상·벌칙"],["hand","턴 종료 손패 정리"],["effect","카드 효과로 가져오기·버리기"],["weapon","무기 교체"],["empty","중앙 카드가 떨어짐"],["free","그냥 버리고 싶어요"]]},
+  fallenRole:{label:"탈락한 사람의 공개된 역할은?",options:[["outlaw","무법자"],["deputy","부관"],["other","보안관·배신자"]]},
+  eliminationCause:{label:"무법자는 어떻게 탈락했나요?",options:[["player","다른 사람이 낸 카드로 탈락"],["dynamite","다이너마이트로 탈락"],["self-duel","자신이 낸 결투에서 탈락"]]},
+  sheriffCaused:{label:"보안관이 부관을 탈락시켰나요?",options:yesno},
+  vultureAlive:{label:"벌처 샘이 살아 있나요?",options:yesno},
+  handLife:{label:"현재 생명력은 몇 개인가요?",options:numbers(1,5)},
+  handAmount:{label:"지금 손패는 몇 장인가요?",options:[...numbers(0,12),["many","13장 이상"]]},
+  movementEffect:{label:"어떤 카드를 사용했나요?",options:[["panic","강탈"],["cat","캣 벌루"],["stagecoach","역마차"],["bank","은행"],["store","잡화점"]]},
+
   alive: { label: "지금 몇 명이 살아 있나요?", options: numbers(2, 7) },
   own: { label: "지금 내 카드 사용 단계인가요?", options: yesno },
   lethal: { label: "방금 치명 피해를 받았나요?", options: yesno },
@@ -133,6 +143,7 @@ const fields: Record<string, Field> = {
   deputies: { label: "남아 있는 부관은 몇 명인가요?", options: numbers(0, 2) },
 };
 const kinds = {
+  movement: {title:"카드 가져오기·버리기",judge:judgeMovement,related:[]},
   beer: {
     title: "맥주를 사용할 수 있나요?",
     judge: judgeBeer,
@@ -196,7 +207,7 @@ export function Conditions({ kind }: { kind: keyof typeof kinds }) {
               <button
                 key={value}
                 onClick={() => {
-                  setInput((p) => ({ ...p, [next]: value }));
+                  setInput((p) => kind === "movement" ? ({...Object.fromEntries(Object.entries(p).slice(0,Object.keys(p).indexOf(next) < 0 ? Object.keys(p).length : Object.keys(p).indexOf(next))),[next]:value}) : ({ ...p, [next]: value }));
                   setEditing(null);
                 }}
               >

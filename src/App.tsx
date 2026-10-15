@@ -51,6 +51,7 @@ const tools = [
   ["victory", "탈락·승리", "flag"],
 ];
 const toolTitles: Record<string, string> = {
+  movement: "카드 가져오기·버리기",
   beer: "맥주 판정",
   defense: "공격 방어 판정",
   start: "턴 시작 판정",
@@ -60,7 +61,7 @@ function toolPath(id: string) {
   return id === "distance"
     ? "/tools/distance"
     : id === "movement"
-      ? "/rulings?group=movement"
+      ? "/rulings/movement-check/check"
       : `/rulings/${id}-check/check`;
 }
 function QuickLinks() {
@@ -116,7 +117,7 @@ function Home({ play = false }: { play?: boolean }) {
           </section>
           <div className="mode-grid">
             <Link
-              to={"/learn/" + (started ? p.id : "setup")}
+              to={"/learn/" + (started ? p.id + "?from=home" : "setup")}
               className="mode-card learn-start" onClickCapture={continueLearning}
             >
               <Icon name="book" />
@@ -198,7 +199,7 @@ function Catalog({ character = false }: { character?: boolean }) {
   const filter = new URLSearchParams(url.split("?")[1]).get("filter") ?? "전체";
   const fromLearning = character && new URLSearchParams(url.split("?")[1]).get("from") === "setup";
   const list = character
-    ? characters
+    ? characters.filter((c) => filter === "전체" || filter === `생명력 ${c.baseLife}`)
     : cards.filter((c) => filter === "전체" || c.tags.includes(filter));
   return (
     <>
@@ -214,6 +215,13 @@ function Catalog({ character = false }: { character?: boolean }) {
         <Link to={"/characters" + (new URLSearchParams(url.split("?")[1]).get("from") === "setup" ? "?from=setup" : "")} className={character ? "catalog-tab active" : "catalog-tab"} aria-current={character ? "page" : undefined}>캐릭터</Link>
       </nav>}
       {character && <p className="muted">능력의 시점과 예외를 함께 확인해요.</p>}
+      {character && <div className="filter-strip" aria-label="캐릭터 시작 생명력">
+        {["전체", "생명력 3", "생명력 4"].map(t => <button key={t} aria-pressed={filter === t} onClick={() => {
+          const params = new URLSearchParams(url.split("?")[1]);
+          params.set("filter", t);
+          go("/characters?" + params.toString());
+        }}>{t}</button>)}
+      </div>}
       {!character && (
         <div className="filter-strip" aria-label="카드 종류">
           {["전체", "공격", "방어", "회복", "카드 얻기", "방해", "장비"].map(
@@ -247,7 +255,7 @@ function Catalog({ character = false }: { character?: boolean }) {
   );
 }
 function Detail({ entry }: { entry: Entry }) {
-  const { url } = useRouter();
+  const { url, hasReturnOrigin } = useRouter();
   const fromSetup = new URLSearchParams(url.split("?")[1]).get("from") === "setup";
   const card = entry.kind === "card" ? (entry as Card) : null;
   const character = entry.kind === "character" ? (entry as Character) : null;
@@ -255,7 +263,7 @@ function Detail({ entry }: { entry: Entry }) {
   return (
     <>
       <div className="section-line">
-        <Link
+        {!hasReturnOrigin && <Link className="back-link"
           to={
             entry.kind === "card"
               ? "/cards"
@@ -269,7 +277,7 @@ function Detail({ entry }: { entry: Entry }) {
             : entry.kind === "character"
               ? "캐릭터"
               : "상황별 판정"}
-        </Link>
+        </Link>}
         <Favorite entry={entry} />
       </div>
       <div className={`detail-heading ${card ? `card-tone-${card.border}` : ""}`}>
@@ -370,14 +378,14 @@ function Detail({ entry }: { entry: Entry }) {
           ))}
         </section>
       )}
-      <section>
+      {(!ruling || entry.steps.length > 1) && <section>
         <h2>{ruling ? "처리 순서" : "사용 절차"}</h2>
         <ol className="plain-steps">
           {entry.steps.map((s, i) => (
             <li key={i}><LabelledText text={s}/></li>
           ))}
         </ol>
-      </section>
+      </section>}
       {entry.exceptions.length > 0 && (
         <section>
           <h2>주의할 예외</h2>
@@ -398,7 +406,7 @@ function Search() {
   const found = searchContent(q);
   return (
     <>
-      <button className="secondary learning-back search-back" onClick={backFromSearch}>‹ 이전 화면으로 돌아가기</button>
+      <button className="back-link search-back" onClick={backFromSearch}>‹ 이전 화면으로 돌아가기</button>
       <div className="section-line">
         <h1>{q ? "검색 결과" : "궁금한 규칙 찾기"}</h1>
         {q && <small>{found.length}개</small>}
@@ -451,18 +459,18 @@ function Search() {
 }
 function Rulings() {
   const { url } = useRouter();
-  const movement = url.includes("movement");
+  const movement = new URLSearchParams(url.split("?")[1]).get("group") === "movement";
   return (
     <>
       <div className="eyebrow">조건을 확인하고, 근거까지</div>
-      <h1>상황별 판정</h1>
-      <QuickLinks />
+      <h1>{movement ? "카드 가져오기·버리기" : "상황별 판정"}</h1>
+      {!movement && <QuickLinks />}
       <section>
-        <h2>{movement ? "카드 가져오기·버리기" : "자주 헷갈리는 질문"}</h2>
+        {!movement && <h2>자주 헷갈리는 질문</h2>}
         {rulings
           .filter(
             (r) =>
-              !movement ||
+              !movement || r.tags.includes("카드 가져오기·버리기") ||
               [
                 "general-store-wait",
                 "discard-free",
@@ -614,7 +622,7 @@ function Learn() {
   );
 }
 export default function App() {
-  const { url } = useRouter();
+  const { url, hasReturnOrigin, backFromSearch } = useRouter();
   const path = url.split("?")[0];
   const [, setTick] = useState(0);
   const [keyboard, setKeyboard] = useState(false);
@@ -696,7 +704,7 @@ export default function App() {
     toolTitles[id.replace("-check", "")]
   ) {
     const kind = id.replace("-check", "") as
-      "beer" | "defense" | "start" | "victory";
+      "beer" | "defense" | "start" | "victory" | "movement";
     title = toolTitles[kind];
     page = <Conditions key={kind} kind={kind} />;
   } else if (path === "/tools/distance") {
@@ -732,15 +740,6 @@ export default function App() {
       main.current?.focus({ preventScroll: true });
     previousPath.current = path;
   }, [path, title, entry]);
-  const lastMode = read(
-    "preferences",
-    { mode: "learn" },
-    (v): v is { mode: string } =>
-      !!v &&
-      typeof v === "object" &&
-      "mode" in v &&
-      ["play", "learn"].includes(String(v.mode)),
-  );
   return (
     <div className={`app theme-${tone}`}>
       <a className="skip-link" href="#main">
@@ -759,7 +758,8 @@ export default function App() {
       </div>
       </div>
       <main id="main" tabIndex={-1} ref={main}>
-        {path.startsWith("/characters") && new URLSearchParams(url.split("?")[1]).get("from") === "setup" && <Link className="secondary learning-back" to="/learn/setup">‹ 배우기로 돌아가기</Link>}
+        {hasReturnOrigin && path !== "/search" && <button className="back-link search-back" onClick={backFromSearch}>‹ 이전 화면으로 돌아가기</button>}
+        {path.startsWith("/characters") && new URLSearchParams(url.split("?")[1]).get("from") === "setup" && <Link className="back-link" to="/learn/setup">‹ 배우기로 돌아가기</Link>}
         {page}
       </main>
       <footer className="app-status">
@@ -773,7 +773,7 @@ export default function App() {
         aria-label="주요 메뉴"
       >
         {[
-          ["home", "홈", "home", lastMode.mode === "play" ? "/play" : "/"],
+          ["home", "홈", "home", "/"],
           ["learn", "배우기", "book", "/learn"],
           ["cards", "카드 및 캐릭터", "cards", "/cards"],
           ["rulings", "판정", "scale", "/rulings"],
