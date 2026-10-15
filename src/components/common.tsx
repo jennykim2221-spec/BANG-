@@ -1,3 +1,4 @@
+import { LabelledText } from "./LabelledText";
 import { CardArtwork } from "./CardArtwork";
 import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -81,9 +82,11 @@ export function Icon({ name, size = 22 }: { name: string; size?: number }) {
   );
 }
 export function SourceLinks({ refs }: { refs: SourceRef[] }) {
+  const visibleRefs = refs.filter(ref => !/\.pdf(?:[?#]|$)/i.test(sources[ref.sourceId].url));
+  if (!visibleRefs.length) return null;
   return (
     <div className="sources">
-      {refs.map((ref, i) => (
+      {visibleRefs.map((ref, i) => (
         <a
           key={i}
           href={
@@ -106,13 +109,15 @@ export function SourceLinks({ refs }: { refs: SourceRef[] }) {
   );
 }
 export function Accordion({
+  defaultOpen = false,
   title,
   children,
 }: {
+  defaultOpen?: boolean;
   title: string;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const id = useId();
   return (
     <section className="accordion">
@@ -191,7 +196,7 @@ export function EntryRow({ entry }: { entry: Entry }) {
           <strong>{entry.title}</strong>
           {entry.nameEn && <small>{entry.nameEn}</small>}
           {card && <small className="card-color-label">{card.border === "blue" ? "파란 설치 카드" : "갈색 일회성 카드"}</small>}
-          <span className="row-summary">{entry.summary}</span>
+          <span className="row-summary"><LabelledText text={entry.summary}/></span>
         </span>
         <Icon name="arrow" size={16} />
       </Link>
@@ -288,6 +293,9 @@ export function Share() {
     </>
   );
 }
+
+
+
 
 
 

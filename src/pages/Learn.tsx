@@ -1,3 +1,5 @@
+import { LabelledText } from "../components/LabelledText";
+import { learningSession } from "../storage/learning-session";
 import { Setup } from "./Setup";
 import { useEffect, useState } from "react";
 import { lessons } from "../content";
@@ -10,10 +12,13 @@ import { contentVersion } from "../content/sources";
 export function LessonPage({ lesson }: { lesson: Lesson }) {
   const { go } = useRouter();
 
-  const [seat, setSeat] = useState("");
-  const [practice, setPractice] = useState(0);
+  const viewLessons=learningSession.review?learningSession.reviewLessons:learningSession.lessons;
+  const [seat, setSeat] = useState(viewLessons[lesson.id]?.seat ?? "");
+  useEffect(() => { if(learningSession.review) learningSession.reviewLessons[lesson.id]={seat}; if(!learningSession.protectBookmark) learningSession.lessons[lesson.id]={seat}; }, [lesson.id, seat]);
   useEffect(() => {
     write("learning-started", true);
+    if (learningSession.protectBookmark) return;
+    learningSession.hasResume=true;
     write("progress", {
       ...progress(),
       version: contentVersion,
@@ -29,18 +34,18 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
     <>
       <div className="section-line">
         <Link to="/learn">‹ 배우기</Link>
-        <span>{lesson.order} / 7 단원</span>
+        <span>{lesson.order} / {lessons.length} 단원</span>
       </div>
       <div className="progress-track">
-        <span style={{ width: `${(lesson.order / 7) * 100}%` }} />
+        <span style={{ width: `${(lesson.order / lessons.length) * 100}%` }} />
       </div>
       <h1>{lesson.title}</h1>
-      <p className="lead">{lesson.summary}</p>
+      <p className="lead"><LabelledText text={lesson.summary}/></p>
       <ol className="lesson-steps">
         {lesson.steps.map((s, i) => (
           <li key={s}>
             <b>{i + 1}</b>
-            <span>{s}</span>
+            <span><LabelledText text={s}/></span>
           </li>
         ))}
       </ol>
@@ -70,39 +75,6 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
           </Link>
         </section>
       )}
-      {lesson.id === "practice" && (
-        <section className="panel">
-          <h2>가상의 첫 턴</h2>
-          <p>
-            생명력 5 · 손패{" "}
-            {practice === 0 ? 5 : practice === 1 ? 7 : practice === 2 ? 6 : 5}장
-          </p>
-          <p>
-            {
-              [
-                "보안관부터 시작합니다.",
-                "2장을 가져왔습니다. 이제 공격을 해볼까요?",
-                "상대가 빗나감!으로 피했어요. 초과 손패를 정리하세요.",
-                "첫 턴을 마쳤어요. 다음 사람의 차례입니다.",
-              ][practice]
-            }
-          </p>
-          <button
-            className="primary full"
-            onClick={() => setPractice((practice + 1) % 4)}
-          >
-            {
-              [
-                "2장 가져오기",
-                "뱅! 사용하기",
-                "1장 버리고 끝내기",
-                "다시 연습하기",
-              ][practice]
-            }
-          </button>
-        </section>
-      )}
-      
       <SourceLinks refs={lesson.sourceRefs} />
       <div className="two-col">
         {lesson.order > 1 ? (
@@ -117,7 +89,7 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
             게임 중 도움
           </Link>
         )}
-        {lesson.order < 7 ? (
+        {lesson.order < lessons.length ? (
           <button className="primary" onClick={() => { finish(); go("/learn/" + lessons[lesson.order].id); }}>
             다음 단원 →
           </button>
@@ -130,6 +102,8 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
     </>
   );
 }
+
+
 
 
 

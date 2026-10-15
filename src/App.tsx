@@ -1,3 +1,6 @@
+import { ImportantTip } from "./components/ImportantTip";
+import { LabelledText } from "./components/LabelledText";
+import { restartLesson, continueLearning } from "./storage/learning-session";
 import { coverImage } from "./content/cover";
 import { CardArtwork } from "./components/CardArtwork";
 import { useEffect, useRef, useState } from "react";
@@ -14,13 +17,10 @@ import {
 import type { Card, Character, Entry, Ruling } from "./content/types";
 import { contentVersion, sources } from "./content/sources";
 import {
-  Accordion,
   EntryRow,
   Favorite,
   Icon,
   SearchBox,
-  Share,
-  SourceLinks,
 } from "./components/common";
 import { searchContent } from "./domain/search";
 import { Conditions } from "./pages/Conditions";
@@ -76,10 +76,10 @@ function QuickLinks() {
     </div>
   );
 }
-function RecordList({ name }: { name: string }) {
+function RecordList({ name, limit }: { name: string; limit?: number }) {
   const list = records(name)
     .map((r) => getEntry(r.id))
-    .filter((e): e is Entry => !!e);
+    .filter((e): e is Entry => !!e).slice(0, limit ?? Infinity);
   return list.length ? (
     <div>
       {list.map((e) => (
@@ -93,7 +93,6 @@ function RecordList({ name }: { name: string }) {
 function Home({ play = false }: { play?: boolean }) {
   const p = progress();
   const started = read("learning-started", false, (v): v is boolean => typeof v === "boolean") || p.done.length > 0;
-  const lesson = lessons.find((l) => l.id === p.id)!;
   return (
     <>
       {!play ? (
@@ -118,7 +117,7 @@ function Home({ play = false }: { play?: boolean }) {
           <div className="mode-grid">
             <Link
               to={"/learn/" + (started ? p.id : "setup")}
-              className="mode-card learn-start"
+              className="mode-card learn-start" onClickCapture={continueLearning}
             >
               <Icon name="book" />
               <strong>{started ? "이어서 배우기" : "처음 배우기"}</strong>
@@ -132,23 +131,25 @@ function Home({ play = false }: { play?: boolean }) {
               <span>찾아보기 →</span>
             </Link>
           </div>
-          <section>
-            <div className="section-line">
-              <h2>{started ? "이어 배우기" : "준비부터 시작하기"}</h2>
-              <span className="muted">{p.done.length} / 7</span>
-            </div>
-            <Link className="continue-card" to={"/learn/" + lesson.id}>
-              <span className="round-number">
-                {lesson.order.toString().padStart(2, "0")}
-              </span>
-              <span>
-                <strong>
-                  {p.done.length ? lesson.title : "게임을 준비해요"}
-                </strong>
-                <small>내 속도대로, 언제든 이어서</small>
-              </span>
-              <Icon name="arrow" size={18} />
-            </Link>
+          <section className="home-area home-area-learning"><div className="section-line"><h2>단계별로 시작하기</h2><span className="area-header-actions"><small className="muted">{p.done.length} / {lessons.length}</small><Link className="area-menu-icon" to="/learn" aria-label="배우기 메뉴 전체 보기"><Icon name="book" size={20} /></Link></span></div>
+      <div className="list-panel">
+        {lessons.map((l) => (
+          <Link className={`lesson-row ${p.done.includes(l.id) ? "lesson-completed" : ""}`} key={l.id} onClickCapture={() => restartLesson(l.id)} to={"/learn/" + l.id}>
+            <span className="round-number">
+              {p.done.includes(l.id) ? "✓" : `${l.order}`.padStart(2, "0")}
+            </span>
+            <span>
+              <strong>{l.title}</strong>
+              <small>
+                {l.order === 1
+                  ? "인원과 준비물 확인"
+                  : "핵심 규칙과 직접 해보기"}
+              </small>
+            </span>
+            <Icon name="arrow" size={18} />
+          </Link>
+        ))}
+      </div>
           </section>
         </>
       ) : (
@@ -158,10 +159,9 @@ function Home({ play = false }: { play?: boolean }) {
           <p className="muted">상황을 고르면 필요한 규칙을 알려드려요.</p>
         </>
       )}
-      <section>
-        <div className="section-line">
-          <h2>상황으로 바로 찾기</h2>
-          <span className="muted">기본판</span>
+      <section className="home-area home-area-situations"><div className="section-line">
+          <h2>상황으로 바로 찾기</h2><Link className="area-menu-icon" to="/play" aria-label="상황별 빠른 도움 메뉴"><Icon name="target" size={20} /></Link>
+          
         </div>
         <QuickLinks />
       </section>
@@ -178,54 +178,42 @@ function Home({ play = false }: { play?: boolean }) {
           </Link>
         </section>
       )}
-      <section>
-        <div className="section-line">
+      <section className="home-area home-area-questions"><div className="section-line">
           <h2>자주 헷갈리는 질문</h2>
-          <Link to="/rulings">모두 보기 ›</Link>
+          <Link className="area-menu-icon" to="/rulings" aria-label="판정 메뉴 전체 보기"><Icon name="scale" size={20} /></Link>
         </div>
         {["gatling-bang", "beer-two"].map((id) => (
           <EntryRow key={id} entry={getEntry(id)!} />
         ))}
       </section>
-      <section>
-        <h2>최근 본 항목</h2>
-        <RecordList name="recent" />
+      <section className="home-area home-area-recent"><div className="section-line"><h2>최근 본 항목</h2><Link className="area-all-link" to="/recent">모두 보기 ›</Link></div>
+        <RecordList name="recent" limit={3} />
       </section>
-      <div className="footer-links">
-        <Link to="/saved">☆ 즐겨찾기</Link>
-        <Link to="/sources">근거·확인 범위 ↗</Link>
-        <button
-          className="text-button"
-          onClick={() => {
-            write("recent", []);
-            location.reload();
-          }}
-        >
-          열람 기록 삭제
-        </button>
-      </div>
+      <div className="footer-links"><Link to="/sources">근거·확인 범위 ↗</Link></div>
     </>
   );
 }
 function Catalog({ character = false }: { character?: boolean }) {
   const { url, go } = useRouter();
   const filter = new URLSearchParams(url.split("?")[1]).get("filter") ?? "전체";
+  const fromLearning = character && new URLSearchParams(url.split("?")[1]).get("from") === "setup";
   const list = character
     ? characters
     : cards.filter((c) => filter === "전체" || c.tags.includes(filter));
   return (
     <>
-      <div className="section-line">
-        <h1>{character ? "캐릭터" : "카드 도감"}</h1>
-        <Link to={character ? "/cards" : "/characters"}>
-          {character ? "카드 도감" : "캐릭터"} ›
-        </Link>
-      </div>
-      <p className="muted">
-        {character
-          ? "능력의 시점과 예외를 함께 확인해요."
-          : "카드 이미지 없이도, 한 문장으로 이해해요."}
-      </p>
+      {!character && (
+        <p className="note">
+          기본 무기 Colt .45는 사거리 1입니다. 별도 카드가 아니므로 80장에
+          포함하지 않아요.
+        </p>
+      )}
+      <h1 className="sr-only">{character ? "캐릭터" : "카드 도감"}</h1>
+      {!fromLearning && <nav className="catalog-tabs" aria-label="카드와 캐릭터 선택">
+        {!fromLearning && <Link to="/cards" className={character ? "catalog-tab" : "catalog-tab active"} aria-current={character ? undefined : "page"}>카드 도감</Link>}
+        <Link to={"/characters" + (new URLSearchParams(url.split("?")[1]).get("from") === "setup" ? "?from=setup" : "")} className={character ? "catalog-tab active" : "catalog-tab"} aria-current={character ? "page" : undefined}>캐릭터</Link>
+      </nav>}
+      {character && <p className="muted">능력의 시점과 예외를 함께 확인해요.</p>}
       {!character && (
         <div className="filter-strip" aria-label="카드 종류">
           {["전체", "공격", "방어", "회복", "카드 얻기", "방해", "장비"].map(
@@ -243,22 +231,18 @@ function Catalog({ character = false }: { character?: boolean }) {
       )}
       <div className="section-line">
         <small>
-          {character ? "캐릭터 16종" : "기본판 22종 · 총 80장"}
+          {character ? "캐릭터 16종" : "22종 · 총 80장"}
           {filter !== "전체" && ` · ${list.length}종`}
         </small>
-        <small>한글명은 검색용 가칭</small>
+        
       </div>
       <div className="list-panel">
         {list.map((e) => (
           <EntryRow key={e.id} entry={e} />
         ))}
       </div>
-      {!character && (
-        <p className="note">
-          기본 무기 Colt .45는 사거리 1입니다. 별도 카드가 아니므로 80장에
-          포함하지 않아요.
-        </p>
-      )}
+
+      {!character && <p className="muted">카드 이미지 없이도, 한 문장으로 이해해요.</p>}
     </>
   );
 }
@@ -305,14 +289,12 @@ function Detail({ entry }: { entry: Entry }) {
                 </span>
               </>
             ) : (
-              <span>
-                {character ? `시작 생명력 ${character.baseLife}` : "공식 판정"}
-              </span>
+              character ? <span className="character-life"><strong>시작 생명력 {character.baseLife}</strong><span className="life-token-row" aria-label={`생명력 토큰 ${character.baseLife}개`}>{Array.from({length:character.baseLife},(_,i)=><svg key={i} className="life-token" width="17" height="30" viewBox="0 0 28 46" aria-hidden="true"><ellipse cx="14" cy="23" rx="13" ry="22" fill="#e5bc65" stroke="#956320" strokeWidth="1.5"/><path d="M9 16Q9 9 14 7Q19 9 19 16V34H9Z" fill="#f9dfa0" stroke="#8c632b" strokeWidth="1.5"/><path d="M8 33H20V37H8Z" fill="#b98535" stroke="#8c632b"/></svg>)}</span></span> : <span>공식 판정</span>
             )}
           </div>
         </div>
       </div>
-      {(card || character) && <small className="artwork-credit"><a href="https://bang.dvgames.com/cardslist.php?id=1&lang=en" target="_blank" rel="noreferrer">dV Games 공식 카드 이미지 ↗</a> · 판본·언어에 따라 표기가 달라요. 숫자·무늬는 대표 한 장의 예시입니다.</small>}
+      
       <section className={`answer ${card ? `card-tone-${card.border}` : ""}`}>
         <small>{ruling ? "결론" : "이것만 먼저 기억해요"}</small>
         <strong>{entry.summary}</strong>
@@ -392,7 +374,7 @@ function Detail({ entry }: { entry: Entry }) {
         <h2>{ruling ? "처리 순서" : "사용 절차"}</h2>
         <ol className="plain-steps">
           {entry.steps.map((s, i) => (
-            <li key={i}>{s}</li>
+            <li key={i}><LabelledText text={s}/></li>
           ))}
         </ol>
       </section>
@@ -400,17 +382,13 @@ function Detail({ entry }: { entry: Entry }) {
         <section>
           <h2>주의할 예외</h2>
           {entry.exceptions.map((e) => (
-            <p className="note" key={e}>
-              {e}
-            </p>
+            <ImportantTip key={e}>{e}</ImportantTip>
           ))}
         </section>
       )}
       
-      <Accordion title="공식 근거와 확인일">
-        <SourceLinks refs={entry.sourceRefs} />
-      </Accordion>
-      <Share />
+      
+      
     </>
   );
 }
@@ -505,7 +483,7 @@ function Sources() {
       <div className="eyebrow">어디까지 확인했나요?</div>
       <h1>근거와 확인 범위</h1>
       <p className="lead">
-        뱅! 기본판 4~7인을 위한
+        뱅! 4~7인을 위한
         <br />
         독립적인 한국어 도움말입니다.
       </p>
@@ -541,7 +519,7 @@ function Sources() {
       </p>
       <h2>콘텐츠 변경 이력</h2>
       <p>
-        2026.10.08: 기본판 카드·캐릭터·FAQ 참조, 조건 판정과 학습 콘텐츠를
+        2026.10.08: 카드·캐릭터·FAQ 참조, 조건 판정과 학습 콘텐츠를
         추가했습니다.
       </p>
       <p className="muted">
@@ -602,11 +580,10 @@ function Saved() {
   );
 }
 function Learn() {
-  const p = progress();
 
   return (
     <>
-      <div className="eyebrow">준비부터 첫 라운드까지</div>
+      <div className="eyebrow learn-intro">준비부터 첫 라운드까지</div>
       <h1>처음 배우기</h1>
       <p className="lead">내 속도로, 한 턴씩.</p>
       <p className="muted">
@@ -614,18 +591,16 @@ function Learn() {
       </p>
       <div className="list-panel">
         {lessons.map((l) => (
-          <Link className="lesson-row" key={l.id} to={"/learn/" + l.id}>
+          <Link className="lesson-row" key={l.id} onClickCapture={() => restartLesson(l.id)} to={"/learn/" + l.id}>
             <span className="round-number">
-              {p.done.includes(l.id) ? "✓" : `${l.order}`.padStart(2, "0")}
+              {`${l.order}`.padStart(2, "0")}
             </span>
             <span>
               <strong>{l.title}</strong>
               <small>
                 {l.order === 1
                   ? "인원과 준비물 확인"
-                  : l.order === 7
-                    ? "가상의 첫 턴 연습"
-                    : "핵심 규칙과 직접 해보기"}
+                  : "핵심 규칙과 직접 해보기"}
               </small>
             </span>
             <Icon name="arrow" size={18} />
@@ -690,10 +665,14 @@ export default function App() {
       : path.startsWith("/rulings") || path.startsWith("/tools")
         ? "rulings"
         : "home";
+  const tone = path.startsWith("/learn") || new URLSearchParams(url.split("?")[1]).get("from") === "setup" ? "learn" : path === "/recent" ? "recent" : path === "/play" || path === "/search" || path.startsWith("/tools") || path.endsWith("/check") ? "situations" : path.startsWith("/rulings") ? "questions" : "neutral";
   const id = path.split("/")[2];
   const entry = id ? getEntry(id) : undefined;
   if (path === "/") page = <Home />;
-  else if (path === "/play") {
+  else if (path === "/recent") {
+    title="최근 본 항목";
+    page=<><h1>최근 본 항목</h1><p className="muted">최근 확인한 순서대로 보여드려요.</p><RecordList name="recent" /></>;
+  } else if (path === "/play") {
     title = "게임 중 빠른 도움";
     page = <Home play />;
   } else if (path === "/search") {
@@ -745,7 +724,7 @@ export default function App() {
     );
   }
   useEffect(() => {
-    document.title = title + " | 뱅! 기본판 도움말";
+    document.title = title + " | 뱅! 도움말";
     if (entry && path === entryPath(entry)) remember(entry.id);
     if (path === "/play" || path.startsWith("/learn"))
       write("preferences", { mode: path === "/play" ? "play" : "learn" });
@@ -763,7 +742,7 @@ export default function App() {
       ["play", "learn"].includes(String(v.mode)),
   );
   return (
-    <div className="app">
+    <div className={`app theme-${tone}`}>
       <a className="skip-link" href="#main">
         본문으로 건너뛰기
       </a>
@@ -771,9 +750,9 @@ export default function App() {
       <header className="app-header">
         <Link to="/" className="brand">
           <span className="brand-mark">B!</span>
-          <span>{title.length > 15 ? "뱅! 기본판 도움말" : title}</span>
+          <span>{title.length > 15 ? "뱅! 도움말" : title}</span>
         </Link>
-        <span className="edition">기본판</span>
+        <Link to="/saved" className="header-favorites" aria-label="즐겨찾기"><Icon name="star" size={18} /><span>즐겨찾기</span></Link>
       </header>
       <div className="search-wrap">
         <SearchBox />
@@ -796,7 +775,7 @@ export default function App() {
         {[
           ["home", "홈", "home", lastMode.mode === "play" ? "/play" : "/"],
           ["learn", "배우기", "book", "/learn"],
-          ["cards", "카드", "cards", "/cards"],
+          ["cards", "카드 및 캐릭터", "cards", "/cards"],
           ["rulings", "판정", "scale", "/rulings"],
         ].map(([key, label, icon, to]) => (
           <Link
@@ -812,6 +791,18 @@ export default function App() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -23,7 +23,7 @@ test("AC03 · base edition counts and stable IDs", () => {
     80,
   );
   assert.equal(characters.length, 16);
-  assert.equal(lessons.length, 7);
+  assert.equal(lessons.length, 6);
   assert.equal(new Set(entries.map((e) => e.id)).size, entries.length);
 });
 test("AC04 · verified sources and references for every public item", () => {

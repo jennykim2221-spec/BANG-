@@ -1,3 +1,4 @@
+import { LabelledText } from "../components/LabelledText";
 import { useEffect, useRef, useState } from "react";
 import {
   judgeBeer,
@@ -173,7 +174,7 @@ export function Conditions({ kind }: { kind: keyof typeof kinds }) {
         실제 게임의 조건을 선택하세요. 조건을 바꾸면 다시 계산합니다.
       </p>
       {Object.keys(input).length > 0 && (
-        <Accordion title="선택한 조건 · 수정">
+        <Accordion title="선택한 조건 · 수정" defaultOpen>
           <div className="condition-summary">
             {Object.entries(input).map(([key, value]) => (
               <button key={key} onClick={() => setEditing(key)}>
@@ -213,7 +214,7 @@ export function Conditions({ kind }: { kind: keyof typeof kinds }) {
             </h2>
             <strong>{verdict.answer}</strong>
             {verdict.reasons.map((r) => (
-              <p key={r}>{r}</p>
+              <p key={r}><LabelledText text={r}/></p>
             ))}
           </section>
         )}
@@ -234,4 +235,5 @@ export function Conditions({ kind }: { kind: keyof typeof kinds }) {
     </>
   );
 }
+
 
